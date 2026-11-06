@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astera</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #ffffff; --ink: #1c1b19; --muted: #6b6860; --line: #e4e1d8;
+    --accent: #3b3fd8; --accent-ink: #ffffff;
+    --safe: #1a7f4b; --safe-bg: #e3f4ea;
+    --caution: #8a5a00; --caution-bg: #fdf0d2;
+    --danger: #b42318; --danger-bg: #fde4e1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141413; --card: #1e1e1c; --ink: #f1efe9; --muted: #9b978d; --line: #33322e;
+      --accent: #8b8ffb; --accent-ink: #11112b;
+      --safe: #5fd39a; --safe-bg: #12301f;
+      --caution: #f2c15b; --caution-bg: #3a2c0b;
+      --danger: #ff8d82; --danger-bg: #3d1713;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 20px 16px 8px; max-width: 1040px; margin: 0 auto; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  header h1 { margin: 0; font-size: 24px; letter-spacing: .02em; }
+  header .tag { color: var(--muted); }
+  .banner { max-width: 1040px; margin: 8px auto 0; padding: 0 16px; }
+  .banner div { background: var(--caution-bg); color: var(--caution); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+  main { max-width: 1040px; margin: 16px auto 48px; padding: 0 16px; display: grid; grid-template-columns: 340px 1fr; gap: 16px; }
+  @media (max-width: 820px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .card h2 { margin: 0 0 12px; font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+    background: transparent; color: var(--ink); font: inherit; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .row { display: flex; gap: 8px; } .row > * { flex: 1; }
+  button { font: inherit; border-radius: 8px; padding: 8px 14px; border: 1px solid var(--line); background: transparent;
+    color: var(--ink); cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button.danger { color: var(--danger); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .full { width: 100%; margin-top: 14px; }
+  .empty { color: var(--muted); text-align: center; padding: 48px 16px; }
+  .steps { display: flex; gap: 4px; margin: 4px 0 16px; }
+  .step { flex: 1; text-align: center; font-size: 12px; padding: 6px 2px; border-radius: 6px; background: var(--bg); color: var(--muted); }
+  .step.done { background: var(--safe-bg); color: var(--safe); }
+  .step.now { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .big { font-size: 28px; font-weight: 700; }
+  .kv { display: grid; grid-template-columns: 110px 1fr; gap: 6px 12px; font-size: 14px; margin: 12px 0; }
+  .kv dt { color: var(--muted); } .kv dd { margin: 0; word-break: break-all; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  .warn { background: var(--caution-bg); color: var(--caution); border-radius: 8px; padding: 8px 12px; font-size: 13px; margin: 8px 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+  .pill.safe { background: var(--safe-bg); color: var(--safe); }
+  .pill.caution { background: var(--caution-bg); color: var(--caution); }
+  .pill.danger { background: var(--danger-bg); color: var(--danger); }
+  .safety { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .safety ul { margin: 8px 0; padding-left: 18px; }
+  .safety p { margin: 8px 0; }
+  .err { background: var(--danger-bg); color: var(--danger); border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-top: 12px; }
+  .log { margin-top: 16px; font-size: 13px; color: var(--muted); }
+  .log div { padding: 3px 0; border-top: 1px dashed var(--line); }
+  .log b { color: var(--ink); font-weight: 600; }
+  .stack { display: grid; gap: 16px; align-content: start; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>&#10022; Astera</h1>
+  <span class="tag">Invoice. Escrow. Release. Safely.</span>
+</header>
+<div class="banner" id="banner"></div>
+
+<main>
+  <section class="card" aria-label="Create invoice">
+    <h2>1. Freelancer creates an invoice</h2>
+    <form id="form">
+      <label for="description">Description</label>
+      <input id="description" value="Logo design for Lagos Coffee Co.">
+      <div class="row">
+        <div><label for="amount">Amount</label><input id="amount" type="number" min="0" step="any" value="150"></div>
+        <div><label for="asset">Asset</label>
+          <select id="asset">
+            <option value="usdt|bep20">USDT on BEP20</option>
+            <option value="usdt|trc20">USDT on TRC20</option>
+            <option value="usdc|base">USDC on Base</option>
+          </select></div>
+      </div>
+      <label for="payout">Freelancer payout address</label>
+      <input id="payout" spellcheck="false">
+      <label for="femail">Freelancer email</label>
+      <input id="femail" value="ada@example.com">
+      <label for="cname">Client name</label>
+      <input id="cname" value="Chidi Okafor">
+      <label for="cemail">Client email</label>
+      <input id="cemail" value="client@example.com">
+      <button class="primary full" type="submit">Create invoice &amp; payment link</button>
+    </form>
+    <div id="formerr"></div>
+  </section>
+
+  <section class="stack" id="right">
+    <div class="card empty">Create an invoice to start the demo.</div>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const STEPS = [["awaiting_payment","Awaiting payment"],["funded","In escrow"],["delivered","Delivered"],["released","Released"]];
+const PAYOUTS = { bep20: "0x1111111111111111111111111111111111111111", base: "0x2222222222222222222222222222222222222222",
+                  trc20: "T" + "A".repeat(33) };
+let inv = null, events = [], err = "", mock = true, busy = false;
+let key = "", clientLink = "";   // key = this freelancer's access key (kept in the page address after #)
+const store = {
+  get(k) { try { return localStorage.getItem(k) || ""; } catch (_) { return ""; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} },
+};
+
+async function api(path, method = "GET", body) {
+  const r = await fetch(path, { method, headers: { "Content-Type": "application/json", "X-Astera-Key": key }, body: body ? JSON.stringify(body) : undefined });
+  let data = null; try { data = await r.json(); } catch (_) {}
+  return { ok: r.ok, status: r.status, data };
+}
+function errText(d) {
+  const x = d && d.detail !== undefined ? d.detail : d;
+  if (!x) return "Something went wrong.";
+  if (typeof x === "string") return x;
+  if (Array.isArray(x)) return x.map(e => (e.loc ? e.loc.slice(1).join(".") + ": " : "") + e.msg).join("; ");
+  return x.message || JSON.stringify(x);
+}
+function setPayoutDefault() {
+  const net = $("#asset").value.split("|")[1];
+  $("#payout").value = PAYOUTS[net];
+}
+async function refresh() {
+  if (!inv) return;
+  const [a, b] = await Promise.all([api("/invoices/" + inv.id), api("/invoices/" + inv.id + "/events")]);
+  if (a.ok) inv = a.data;
+  else if (!inv.status) { $("#right").innerHTML = `<div class="card empty">${esc(errText(a.data))}. Open the link you were given when the invoice was created.</div>`; return; }
+  if (b.ok) events = b.data;
+  render();
+}
+async function act(fn) {
+  if (busy) return; busy = true; err = "";
+  try { await fn(); } catch (e) { err = "Could not reach the server."; }
+  busy = false; await refresh();
+}
+function render() {
+  const el = $("#right");
+  if (!inv) { el.innerHTML = '<div class="card empty">Create an invoice to start the demo.</div>'; return; }
+  const idx = STEPS.findIndex(s => s[0] === inv.status);
+  const terminal = ["disputed", "refunded", "expired"].includes(inv.status);
+  const steps = STEPS.map((s, i) => {
+    const cls = terminal ? "" : (i < idx ? "done" : i === idx ? "now" : "");
+    return `<div class="step ${cls}">${s[1]}</div>`;
+  }).join("");
+  const st = inv.status;
+  const partial = Number(inv.funded_amount) > 0 && st === "awaiting_payment";
+  const log = events.slice().reverse().map(e => `<div><b>${esc(e.kind)}</b> ${esc(e.detail)}</div>`).join("");
+  el.innerHTML = `
+  <div class="card">
+    <h2>2. Your invoice (freelancer view)</h2>
+    <div class="steps">${steps}</div>
+    ${terminal ? `<div class="warn">Invoice is ${esc(st)}.</div>` : ""}
+    <div class="big">${esc(inv.amount)} ${esc(inv.token.toUpperCase())}</div>
+    <div style="color:var(--muted)">${esc(inv.description)}</div>
+    <dl class="kv">
+      <dt>Pay to</dt><dd><code>${esc(inv.pay_to)}</code></dd>
+      <dt>Network</dt><dd>${esc(inv.network.toUpperCase())}</dd>
+      <dt>Received</dt><dd>${esc(inv.funded_amount)} / ${esc(inv.amount)}${partial ? " (partial, still waiting)" : ""}</dd>
+      <dt>Client link</dt><dd>${clientLink
+        ? `<code>${esc(clientLink)}</code> <button id="copylink">Copy</button> <a href="${esc(clientLink)}" target="_blank" rel="noopener">Open</a>`
+        : "Only shown in the browser where you created the invoice."}</dd>
+      <dt>Expires</dt><dd>${esc(new Date(inv.expires_at + "Z").toLocaleString())}</dd>
+      ${inv.release_tx_hash ? `<dt>Release tx</dt><dd><code>${esc(inv.release_tx_hash)}</code></dd>`
+        : inv.release_ref ? `<dt>Payout</dt><dd>Queued with Roqqu (ref <code>${esc(inv.release_ref)}</code>), waiting for the tx hash</dd>` : ""}
+    </dl>
+    <div class="warn">Private links: anyone with the client link can approve the payment, and anyone with this page's address can manage the invoice. Share the client link only with your client, and bookmark this page.</div>
+    <div class="actions">
+      ${mock ? `<button id="payfull" ${st === "awaiting_payment" ? "" : "disabled"}>Simulate client payment</button>
+      <button id="paypart" ${st === "awaiting_payment" ? "" : "disabled"}>Simulate half payment</button>` : ""}
+      <button id="deliver" ${st === "funded" ? "" : "disabled"}>Freelancer: mark delivered</button>
+      <button id="dispute" class="danger" ${["funded", "delivered"].includes(st) ? "" : "disabled"}>Dispute</button>
+    </div>
+    ${err ? `<div class="err" role="alert">${esc(err)}</div>` : ""}
+    <div class="log">${log}</div>
+  </div>`;
+  const on = (id, fn) => { const b = $("#" + id); if (b) b.onclick = fn; };
+  on("payfull", () => act(async () => {
+    const left = +(Number(inv.amount) - Number(inv.funded_amount)).toFixed(8);  // pay what is still owed
+    await api("/dev/simulate-payment/" + inv.id + "?amount=" + left, "POST");
+  }));
+  on("paypart", () => act(async () => { await api("/dev/simulate-payment/" + inv.id + "?amount=" + (Number(inv.amount) / 2), "POST"); }));
+  on("deliver", () => act(async () => { const r = await api("/invoices/" + inv.id + "/deliver", "POST"); if (!r.ok) err = errText(r.data); }));
+  on("dispute", () => act(async () => { const r = await api("/invoices/" + inv.id + "/dispute", "POST"); if (!r.ok) err = errText(r.data); }));
+  on("copylink", async () => {
+    try { await navigator.clipboard.writeText(clientLink); $("#copylink").textContent = "Copied"; } catch (_) {}
+  });
+}
+// Real deposits arrive by webhook, so keep the page in sync while an invoice is still in progress.
+setInterval(() => {
+  if (inv && !busy && ["awaiting_payment", "funded", "delivered", "disputed"].includes(inv.status)) refresh();
+}, 5000);
+$("#asset").onchange = setPayoutDefault;
+$("#form").onsubmit = async e => {
+  e.preventDefault(); $("#formerr").innerHTML = "";
+  const [token, network] = $("#asset").value.split("|");
+  const r = await api("/invoices", "POST", {
+    freelancer_email: $("#femail").value, client_email: $("#cemail").value, client_name: $("#cname").value,
+    freelancer_payout_address: $("#payout").value.trim(), description: $("#description").value,
+    amount: String($("#amount").value), token, network });
+  if (!r.ok) { $("#formerr").innerHTML = `<div class="err" role="alert">${esc(errText(r.data))}</div>`; return; }
+  // The keys are returned only once. The freelancer key goes in the page address (after #) so a
+  // reload or bookmark keeps access; the client link is remembered in this browser for re-sharing.
+  key = r.data.freelancer_key;
+  clientLink = `${location.origin}/pay/${r.data.id}#k=${r.data.client_key}`;
+  store.set("astera:" + r.data.id, clientLink);
+  history.replaceState(null, "", `#inv=${r.data.id}&k=${key}`);
+  inv = r.data; err = ""; await refresh();
+};
+(async () => {
+  setPayoutDefault();
+  const m = await api("/meta");
+  if (m.ok) mock = m.data.mock;
+  $("#banner").innerHTML = mock ? '<div>Demo mode: payments and payouts are simulated. No real funds move.</div>' : "";
+  // Returning freelancer: the invoice id and key are in the address.
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get("inv") && h.get("k")) {
+    key = h.get("k"); clientLink = store.get("astera:" + h.get("inv"));
+    inv = { id: h.get("inv") }; await refresh();
+  }
+})();
+</script>
+</body>
+</html>

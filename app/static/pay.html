@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pay invoice | Astera</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #ffffff; --ink: #1c1b19; --muted: #6b6860; --line: #e4e1d8;
+    --accent: #3b3fd8; --accent-ink: #ffffff;
+    --safe: #1a7f4b; --safe-bg: #e3f4ea;
+    --caution: #8a5a00; --caution-bg: #fdf0d2;
+    --danger: #b42318; --danger-bg: #fde4e1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141413; --card: #1e1e1c; --ink: #f1efe9; --muted: #9b978d; --line: #33322e;
+      --accent: #8b8ffb; --accent-ink: #11112b;
+      --safe: #5fd39a; --safe-bg: #12301f;
+      --caution: #f2c15b; --caution-bg: #3a2c0b;
+      --danger: #ff8d82; --danger-bg: #3d1713;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 520px; margin: 0 auto; padding: 16px; }
+  header { display: flex; align-items: baseline; gap: 10px; padding: 8px 0 12px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header span { color: var(--muted); font-size: 13px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .banner { background: var(--caution-bg); color: var(--caution); border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
+  .steps { display: flex; gap: 4px; margin: 0 0 16px; }
+  .step { flex: 1; text-align: center; font-size: 11px; padding: 6px 2px; border-radius: 6px; background: var(--bg); color: var(--muted); }
+  .step.done { background: var(--safe-bg); color: var(--safe); }
+  .step.now { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .desc { color: var(--muted); margin: 0 0 4px; }
+  .amount { font-size: 34px; font-weight: 750; line-height: 1.15; }
+  .status { margin: 14px 0; padding: 10px 12px; border-radius: 10px; background: var(--bg); }
+  .status.ok { background: var(--safe-bg); color: var(--safe); }
+  .status.bad { background: var(--danger-bg); color: var(--danger); }
+  .label { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 0 4px; }
+  .addr { display: flex; gap: 8px; align-items: stretch; }
+  .addr code { flex: 1; padding: 10px; border: 1px solid var(--line); border-radius: 8px; word-break: break-all;
+    font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  button { font: inherit; border-radius: 10px; padding: 10px 16px; border: 1px solid var(--line); background: transparent;
+    color: var(--ink); cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; width: 100%; margin-top: 12px; }
+  button.link { color: var(--danger); width: 100%; margin-top: 8px; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .warn { background: var(--caution-bg); color: var(--caution); border-radius: 8px; padding: 10px 12px; font-size: 14px; margin-top: 12px; }
+  .pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+  .pill.safe { background: var(--safe-bg); color: var(--safe); }
+  .pill.caution { background: var(--caution-bg); color: var(--caution); }
+  .pill.danger { background: var(--danger-bg); color: var(--danger); }
+  .safety { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; font-size: 14px; }
+  .safety ul { padding-left: 18px; margin: 6px 0 0; }
+  .err { background: var(--danger-bg); color: var(--danger); border-radius: 8px; padding: 8px 12px; font-size: 14px; margin-top: 12px; }
+  .small { color: var(--muted); font-size: 13px; margin-top: 14px; word-break: break-all; }
+  .demo { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>&#10022; Astera</h1><span>Escrow-protected payment</span></header>
+  <div id="banner"></div>
+  <div class="card" id="card">Loading invoice&hellip;</div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const id = decodeURIComponent(location.pathname.split("/").filter(Boolean).pop() || "");
+const STEPS = [["awaiting_payment", "Pay"], ["funded", "In escrow"], ["delivered", "Delivered"], ["released", "Released"]];
+let inv = null, safety = null, err = "", mock = false, busy = false, copied = false, notFound = false, denied = false;
+// The client's access key travels in the link after "#", which browsers never send to the server on their own.
+const key = new URLSearchParams(location.hash.slice(1)).get("k") || "";
+
+async function api(path, method = "GET", body) {
+  const r = await fetch(path, { method, headers: { "Content-Type": "application/json", "X-Astera-Key": key }, body: body ? JSON.stringify(body) : undefined });
+  let data = null; try { data = await r.json(); } catch (_) {}
+  return { ok: r.ok, status: r.status, data };
+}
+function errText(d) {
+  const x = d && d.detail !== undefined ? d.detail : d;
+  if (!x) return "Something went wrong.";
+  if (typeof x === "string") return x;
+  if (Array.isArray(x)) return x.map(e => e.msg).join("; ");
+  return x.message || JSON.stringify(x);
+}
+async function load() {
+  const r = await api("/invoices/" + encodeURIComponent(id));
+  if (r.status === 404) { notFound = true; render(); return; }
+  if (r.status === 401 || r.status === 403) { denied = true; render(); return; }
+  if (!r.ok) return;
+  inv = r.data;
+  if (inv.status === "delivered" && !safety) {
+    const s = await api("/invoices/" + encodeURIComponent(id) + "/release-check");
+    if (s.ok) safety = s.data;
+  }
+  render();
+}
+async function act(fn) {
+  if (busy) return; busy = true; err = "";
+  try { await fn(); } catch (_) { err = "Could not reach the server."; }
+  busy = false; await load();
+}
+async function copyAddr() {
+  try { await navigator.clipboard.writeText(inv.pay_to); copied = true; } catch (_) { copied = false; }
+  render(); setTimeout(() => { copied = false; render(); }, 1800);
+}
+function statusBlock() {
+  const st = inv.status, got = Number(inv.funded_amount), want = Number(inv.amount);
+  const left = +(want - got).toFixed(8);
+  const T = inv.token.toUpperCase();
+  if (st === "awaiting_payment")
+    return got > 0 ? `<div class="status">Received ${esc(inv.funded_amount)} of ${esc(inv.amount)} ${T}. Send the remaining <b>${left} ${T}</b>.</div>`
+                   : `<div class="status">Waiting for your payment. This page updates by itself once it arrives.</div>`;
+  if (st === "funded") return `<div class="status ok">Payment received. Your money is held in escrow until the work is delivered.</div>`;
+  if (st === "delivered") return `<div class="status">The freelancer says the work is delivered. Review it, then release the payment.</div>`;
+  if (st === "released") return `<div class="status ok">Payment released to the freelancer. All done.</div>`;
+  if (st === "disputed") return `<div class="status bad">This invoice is in dispute. Funds stay in escrow until it is resolved.</div>`;
+  if (st === "refunded") return `<div class="status bad">This invoice was refunded.</div>`;
+  if (st === "expired") return `<div class="status bad">This invoice expired before payment. Ask the freelancer for a new one.</div>`;
+  return "";
+}
+function render() {
+  const el = $("#card");
+  if (notFound) { el.innerHTML = "Invoice not found. Check the link you were sent."; return; }
+  if (denied) { el.innerHTML = "This link is incomplete or not valid for this invoice. Open the full link exactly as it was sent to you."; return; }
+  if (!inv) return;
+  const st = inv.status, T = inv.token.toUpperCase();
+  const idx = STEPS.findIndex(s => s[0] === st), terminal = ["disputed", "refunded", "expired"].includes(st);
+  const steps = STEPS.map((s, i) => `<div class="step ${terminal ? "" : i < idx ? "done" : i === idx ? "now" : ""}">${s[1]}</div>`).join("");
+  let body = "";
+  if (st === "awaiting_payment") {
+    body = `<div class="label">Send exactly to this address</div>
+      <div class="addr"><code>${esc(inv.pay_to)}</code><button id="copy">${copied ? "Copied" : "Copy"}</button></div>
+      <div class="label">Network</div><div><b>${esc(inv.network.toUpperCase())}</b> &middot; ${esc(T)}</div>
+      <div class="warn">${esc(inv.warning)}</div>
+      <div class="small">Pay before ${esc(new Date(inv.expires_at + "Z").toLocaleString())}.</div>`;
+    if (mock) body += `<div class="demo"><button id="simpay">Demo: simulate my payment</button></div>`;
+  }
+  if (st === "delivered") {
+    const needAck = safety && safety.verdict === "caution", blocked = safety && safety.verdict === "danger";
+    const items = safety ? safety.findings.map(f => `<li><span class="pill ${esc(f.severity === "info" ? "safe" : f.severity)}">${esc(f.severity)}</span> ${esc(f.message)}</li>`).join("") : "";
+    body = (safety ? `<div class="safety">Payout safety check: <span class="pill ${esc(safety.verdict)}">${esc(safety.verdict)}</span>
+        <p>${esc(safety.explanation)}</p><ul>${items}</ul></div>` : "")
+      + `<button class="primary" id="release" ${blocked ? "disabled" : ""}>${needAck ? "I understand, release payment" : "Approve &amp; release payment"}</button>
+         <button class="link" id="dispute">Something is wrong: open a dispute</button>`;
+  }
+  if (st === "funded") body = `<button class="link" id="dispute">Open a dispute</button>`;
+  if (st === "released") body = inv.release_tx_hash
+    ? `<div class="small">Transaction: <code>${esc(inv.release_tx_hash)}</code></div>`
+    : `<div class="small">Payout queued with Roqqu (ref <code>${esc(inv.release_ref || "")}</code>). The transaction hash appears here once it is on-chain.</div>`;
+  el.innerHTML = `<div class="steps">${steps}</div>
+    <p class="desc">${esc(inv.description)}</p>
+    <div class="amount">${esc(inv.amount)} ${esc(T)}</div>
+    ${statusBlock()}${body}${err ? `<div class="err" role="alert">${esc(err)}</div>` : ""}`;
+  const on = (i, fn) => { const b = $("#" + i); if (b) b.onclick = fn; };
+  on("copy", copyAddr);
+  on("simpay", () => act(async () => {
+    const left = +(Number(inv.amount) - Number(inv.funded_amount)).toFixed(8);
+    await api("/dev/simulate-payment/" + encodeURIComponent(id) + "?amount=" + left, "POST");
+  }));
+  on("dispute", () => act(async () => { const r = await api("/invoices/" + encodeURIComponent(id) + "/dispute", "POST"); if (!r.ok) err = errText(r.data); }));
+  on("release", () => act(async () => {
+    const needAck = safety && safety.verdict === "caution";
+    const r = await api("/invoices/" + encodeURIComponent(id) + "/release", "POST", { acknowledge_caution: !!needAck });
+    if (r.ok) { safety = r.data.safety; return; }
+    const d = r.data && r.data.detail;
+    if (d && d.findings) { safety = d; err = d.message; } else err = errText(r.data);
+  }));
+}
+(async () => {
+  const m = await api("/meta");
+  if (m.ok && m.data.mock) { mock = true; $("#banner").innerHTML = '<div class="banner">Demo mode: payments are simulated. No real funds move.</div>'; }
+  await load();
+  setInterval(() => { if (!busy && inv && !["released", "refunded", "expired"].includes(inv.status)) load(); }, 5000);
+})();
+</script>
+</body>
+</html>
